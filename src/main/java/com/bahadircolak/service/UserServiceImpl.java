@@ -1,60 +1,86 @@
 package com.bahadircolak.service;
 
-import com.bahadircolak.model.Role;
+import com.bahadircolak.config.PasswordEncoderService;
 import com.bahadircolak.model.User;
 import com.bahadircolak.repository.UserRepository;
-import com.bahadircolak.web.dto.UserRegistrationDto;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.bahadircolak.web.dto.UserDto;
+import com.bahadircolak.web.request.RegisterUserRequest;
+import com.bahadircolak.web.request.UpdateUserRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
-public class UserServiceImpl implements UserService{
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
 
-    private UserRepository userRepository;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    public UserServiceImpl(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final UserRepository userRepository;
+    private final PasswordEncoderService passwordEncoderService;
 
     @Override
-    public User save(UserRegistrationDto registrationDto) {
-        User user = new User(
-                registrationDto.getFirstName(),
-                registrationDto.getLastName(),
-                registrationDto.getEmail(),
-                passwordEncoder.encode(registrationDto.getPassword()),
-                Arrays.asList(new Role("ROLE_USER")));
-
-        return userRepository.save(user);
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-        User user = userRepository.findByEmail(username);
-        if(user == null) {
-            throw new UsernameNotFoundException("Invalid username or password.");
+    public UserDto createUser(RegisterUserRequest request) {
+        if (doesUserExist(request.getEmail())) {
+            throw new RuntimeException(String.format("User with email: %s already exists!", request.getEmail()));
         }
 
-        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), mapRolesToAuthorities(user.getRoles()));
+        String passwordSalt = passwordEncoderService.generateSalt();
+        User user = User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .password(passwordEncoderService.hash(request.getPassword(), passwordSalt))
+                .salt(passwordSalt)
+                .build();
 
+        return userRepository.save(user).toDto();
     }
 
-    private Collection<? extends GrantedAuthority> mapRolesToAuthorities(Collection<Role> roles) {
+    private boolean doesUserExist(String email) {
+        return userRepository.existsByEmail(email);
+    }
 
-        return roles.stream().map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
+    @Override
+    public UserDto retrieveUserById(String userId) {
+        return userRepository.findById(Long.valueOf(userId))
+                .map(User::toDto)
+                .orElseThrow(() -> new RuntimeException(String.format("User not found with id: %s", userId)));
+    }
 
+    @Override
+    public List<UserDto> retrieveAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(User::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void updateUser(String userId, UpdateUserRequest request) {
+        userRepository.findById(Long.valueOf(userId)).ifPresentOrElse(user -> {
+            updateUserInstance(request, user);
+            userRepository.save(user);
+        }, () -> { throw new RuntimeException(String.format("User not found with id: %s", userId)); });
+    }
+
+    private void updateUserInstance(UpdateUserRequest newUser, User oldUser) {
+        String newFirstName = newUser.getFirstName();
+        String newLastName = newUser.getLastName();
+        String newEmail = newUser.getEmail();
+
+        oldUser.setFirstName(Objects.nonNull(newFirstName) ? newFirstName : oldUser.getFirstName());
+        oldUser.setLastName(Objects.nonNull(newLastName) ? newLastName : oldUser.getLastName());
+        oldUser.setEmail(Objects.nonNull(newEmail) ? newEmail : oldUser.getEmail());
+    }
+
+    @Override
+    public void deleteUser(String userId) {
+        userRepository.findById(Long.valueOf(userId))
+                .ifPresentOrElse(
+                        userRepository::delete,
+                        () -> { throw new RuntimeException(String.format("User not found with id: %s", userId)); }
+                );
     }
 }

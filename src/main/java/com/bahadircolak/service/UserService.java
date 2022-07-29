@@ -1,9 +1,19 @@
 package com.bahadircolak.service;
 
-import com.bahadircolak.model.User;
-import com.bahadircolak.web.dto.UserRegistrationDto;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import com.bahadircolak.web.dto.UserDto;
+import com.bahadircolak.web.request.RegisterUserRequest;
+import com.bahadircolak.web.request.UpdateUserRequest;
 
-public interface UserService extends UserDetailsService {
-    User save(UserRegistrationDto registrationDto);
+import java.util.List;
+
+public interface UserService {
+    UserDto createUser(RegisterUserRequest registrationDto);
+
+    UserDto retrieveUserById(String userId);
+
+    List<UserDto> retrieveAllUsers();
+
+    void updateUser(String userId, UpdateUserRequest request);
+
+    void deleteUser(String userId);
 }

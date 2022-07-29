@@ -1,4 +1,4 @@
-package com.bahadircolak.web.dto;
+package com.bahadircolak.web.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class UserRegistrationDto {
+public class RegisterUserRequest {
 
     private String firstName;
     private String lastName;

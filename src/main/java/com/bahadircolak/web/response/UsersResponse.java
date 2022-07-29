@@ -3,12 +3,14 @@ package com.bahadircolak.web.response;
 import com.bahadircolak.web.dto.UserDto;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
+public class UsersResponse {
 
-    private UserDto user;
+    private List<UserDto> users;
 }
