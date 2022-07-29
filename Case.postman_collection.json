@@ -100,7 +100,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"firstName\": \"ege\",\n    \"lastName\": \"bircan\",\n    \"email\": \"egege@hot\",\n    \"password\": \"1234\"\n}",
+					"raw": "{\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"email\": \"\",\n    \"password\": \"\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
